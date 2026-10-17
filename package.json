@@ -1,0 +1,60 @@
+{
+  "name": "biociencia",
+  "productName": "BioCiencia",
+  "version": "1.0.0",
+  "description": "BioCiencia - gestor de referencias de escritorio libre, estilo EndNote; datos guardados solo en esta maquina",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chris-bio/biociencia.git"
+  },
+  "main": "main.js",
+  "scripts": {
+    "icons": "node scripts/make-icons.js",
+    "start": "electron .",
+    "dist": "npm run icons && electron-builder"
+  },
+  "author": "BioCiencia",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "sharp": "0.33.5"
+  },
+  "build": {
+    "appId": "com.biociencia.app",
+    "productName": "BioCiencia",
+    "files": [
+      "main.js",
+      "preload.js",
+      "app.js",
+      "citewell.html",
+      "build/icon.png",
+      "!**/*.map"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "fileAssociations": [
+        { "ext": "ris", "name": "Cita bibliográfica RIS", "description": "Abrir con BioCiencia", "role": "Editor" },
+        { "ext": "bib", "name": "Cita bibliográfica BibTeX", "description": "Abrir con BioCiencia", "role": "Editor" }
+      ]
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office",
+      "icon": "build/icon.png"
+    }
+  },
+  "allowScripts": {
+    "electron": true,
+    "sharp": true
+  }
+}

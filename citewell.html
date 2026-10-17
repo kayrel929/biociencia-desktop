@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.openalex.org https://api.crossref.org https://eutils.ncbi.nlm.nih.gov; script-src 'self'; frame-src blob:">
+<title>BioCiencia — Gestor de referencias</title>
+<style>
+:root{
+  --navy:#0d2436; --navy2:#12314e; --navy3:#0a1c2c; --teal:#128285; --teal2:#0f6f74;
+  --bg:#ffffff; --panel:#ffffff; --text:#1f2937; --muted:#6b7280; --border:#d1d5db;
+  --hover:#eef3f9; --row-sel:#cfe2f7; --link:#0c7a80;
+  --side-w:262px; --det-w:430px;
+}
+body.dark{ --bg:#111827; --panel:#0f1626; --text:#e5e7eb; --muted:#9ca3af; --border:#26334d;
+  --hover:#1a2540; --row-sel:#1d2b4a; --link:#3fbdc4; }
+*{box-sizing:border-box; margin:0; padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif; font-size:15px; color:var(--text);
+  height:100vh; overflow:hidden; background:var(--bg)}
+button{font-family:inherit; color:inherit}
+input,select,textarea{font-family:inherit; font-size:15px; color:var(--text)}
+input{background:var(--bg)}
+a{color:var(--link)}
+svg{fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+#shell{display:flex; flex-direction:column; height:100vh}
+
+/* ======== MENÚ SUPERIOR (estilo Office/EndNote: franja clara) ======== */
+:root{
+  --bar-bg:#f4f6f8; --bar-line:#d8dde3; --side-bg:#f4f6f8; --side-line:#dfe3e8;
+  --sel:#cfe2f7; --hov2:#e9eef4; --ink:#12314e;
+}
+body.dark{ --bar-bg:#0f1626; --bar-line:#26334d; --side-bg:#0f1626; --side-line:#1d2942;
+  --sel:#1d3a5c; --hov2:#16233c; --ink:#cfe2f7; }
+#menubar{background:var(--bar-bg); border-bottom:1px solid var(--bar-line); color:#1f2937; display:flex;
+  align-items:center; height:32px; padding:0 6px; flex-shrink:0; user-select:none; position:relative; z-index:100}
+body.dark #menubar{color:#dbe6ee}
+.mb-brand{display:flex; align-items:center; gap:7px; padding:0 12px 0 4px; font-weight:700; color:var(--ink); font-size:13.5px}
+.mb-brand svg{width:19px; height:19px; flex-shrink:0}
+.logo-bc{width:19px; height:19px; border-radius:4px; background:#12314e; color:#fff; font-size:10.5px;
+  font-weight:800; display:inline-flex; align-items:center; justify-content:center; letter-spacing:.4px; flex-shrink:0}
+.logo-bc.lg{width:34px; height:34px; border-radius:8px; font-size:15px; letter-spacing:.6px}
+.mb-title{font-size:13px; color:#8a94a0; padding:0 8px; white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis}
+.mb-item{position:relative}
+.mb-btn{border:0; background:none; color:#1f2937; font-size:13.5px; padding:5px 11px; cursor:pointer; border-radius:4px}
+body.dark .mb-btn{color:#dbe6ee}
+.mb-btn:hover, .mb-item.open .mb-btn{background:var(--hov2)}
+.mb-pop{position:absolute; top:100%; left:0; background:#fff; color:#1f2937; border:1px solid #d1d5db;
+  border-radius:6px; box-shadow:0 10px 30px rgba(0,0,0,.18); min-width:230px; padding:5px; display:none; z-index:120}
+body.dark .mb-pop{background:#16233c; color:#e5e7eb; border-color:#26334d}
+.mb-item.open .mb-pop{display:block}
+.mb-pop button{display:flex; width:100%; text-align:left; border:0; background:none; padding:7px 11px;
+  font-size:14px; border-radius:5px; cursor:pointer; gap:8px}
+.mb-pop button:hover{background:#eef3f9}
+body.dark .mb-pop button:hover{background:#1a2540}
+.mb-pop hr{border:0; border-top:1px solid #e5e7eb; margin:4px 6px}
+.mb-pop button .mi-key{margin-left:auto; opacity:.55; font-size:12.5px}
+.mb-pop .st-sec{padding:8px 11px 3px; font-size:11.5px; text-transform:uppercase; letter-spacing:.7px; color:#6b7280}
+#shell-row{display:flex; flex:1; min-height:0}
+
+/* ======== SIDEBAR (franja clara con acentos azul marino, estilo EndNote) ======== */
+#sidebar{width:var(--side-w); flex-shrink:0; background:var(--side-bg); border-right:1px solid var(--bar-line);
+  color:#1f2937; display:flex; flex-direction:column; overflow:hidden}
+body.dark #sidebar{color:#cfdde7}
+.sb-user{padding:12px 16px 6px; display:flex; align-items:center; gap:10px}
+.sb-logo{width:34px; height:34px; border-radius:8px; overflow:hidden; flex-shrink:0}
+.sb-logo svg{width:100%; height:100%; display:block}
+.sb-user b{color:var(--ink); font-size:16px; display:block; font-weight:700}
+.sb-user small{font-size:12.5px; color:#77808b}
+.sb-sync{padding:8px 16px 12px; font-size:13px; color:#5b6572; display:flex; gap:6px; align-items:center;
+  border-bottom:1px solid var(--side-line)}
+.sb-sync .dot{width:7px; height:7px; border-radius:50%; background:var(--teal)}
+#sb-nav{padding:8px 8px}
+.sb-i{display:flex; align-items:center; gap:9px; width:100%; padding:7px 10px; border:0; background:none;
+  color:#1f2937; font-size:14.5px; border-radius:6px; cursor:pointer; text-align:left}
+body.dark .sb-i{color:#cfdde7}
+.sb-i svg{width:15px; height:15px; stroke-width:1.7; flex-shrink:0; opacity:.8}
+.sb-i:hover{background:var(--hov2)}
+.sb-i.active{background:var(--sel); color:var(--ink); font-weight:600}
+.sb-i .cnt{margin-left:auto; font-size:12.5px; color:#6b7280; opacity:1}
+.sb-sec{display:flex; align-items:center; width:100%; gap:6px; padding:10px 10px 4px; font-size:12px;
+  letter-spacing:.8px; color:#8a94a0; text-transform:uppercase; cursor:pointer}
+.sb-sec .chev{transition:transform .15s; font-size:10px}
+.sb-sec.closed .chev{transform:rotate(-90deg)}
+.sb-sec .mb-plus{margin-left:auto; border:0; background:none; color:#8a94a0; font-size:14px; cursor:pointer}
+.sb-sec .mb-plus:hover{color:var(--ink)}
+.sb-list{padding:0 4px; overflow-y:auto}
+.sb-list.closed{display:none}
+.sb-i .row-act{display:none; margin-left:auto}
+.sb-i .row-act button{border:0; background:none; color:#8a94a0; font-size:12.5px; padding:0 3px; cursor:pointer}
+.sb-i .row-act button:hover{color:#b91c1c}
+.sb-i:hover .row-act{display:inline-flex}
+.sb-i:hover .cnt{display:none}
+.sb-tag{width:calc(100% - 14px); margin-left:14px; justify-content:flex-start; font-size:13.5px; padding:5px 10px}
+.sb-tag.on{color:var(--teal2); background:var(--hov2)}
+#sb-search{margin-top:auto; padding:10px; border-top:1px solid var(--side-line); position:relative}
+#sb-search input{width:100%; padding:7px 30px 7px 10px; border:1px solid var(--border); border-radius:6px;
+  font-size:13.5px; background:var(--bg); color:var(--text); outline:none}
+#sb-search input:focus{border-color:var(--teal)}
+#sb-search .qi{position:absolute; right:18px; top:17px; color:#8a94a0; width:14px; height:14px}
+
+/* ======== COLUMNA CENTRAL ======== */
+#mcol{flex:1; display:flex; flex-direction:column; min-width:0}
+#tabs{display:flex; background:var(--bar-bg); border-bottom:1px solid var(--bar-line); padding:4px 6px 0; gap:2px; flex-shrink:0; overflow-x:auto}
+.tab{background:#e7eaee; color:#42506b; border:1px solid transparent; border-bottom:0; padding:7px 16px; font-size:13.5px; cursor:pointer;
+  border-radius:6px 6px 0 0; display:flex; gap:10px; align-items:center; white-space:nowrap}
+body.dark .tab{background:#16233c; color:#9db7c8}
+.tab.active{background:var(--bg); color:var(--text); font-weight:600; border-color:var(--bar-line)}
+body.dark .tab.active{border-color:#26334d}
+.tab .tx{opacity:.55; font-size:12px; padding:0 2px}
+.tab .tx:hover{opacity:1; color:#e11d48}
+.tab.plus{padding:7px 13px}
+#qrow{padding:12px 20px 6px; display:flex; gap:10px; align-items:center; flex-shrink:0}
+.q-lbl{font-size:13.5px; color:#5b6572; white-space:nowrap; padding-left:2px}
+.qbox{flex:1; display:flex; align-items:center; border:1px solid var(--border); border-radius:6px; background:var(--bg)}
+.qbox:focus-within{border-color:var(--teal)}
+#q-campo{border:0; outline:none; font-size:13.5px; padding:9px 8px 9px 10px; color:var(--text);
+  flex-shrink:0; background:var(--bg); border-right:1px solid var(--border); height:100%; max-width:150px}
+#search{flex:1; border:0; padding:9px 12px; font-size:15px; outline:none; border-radius:6px}
+.qbox .qi{margin-right:10px; color:var(--muted); width:16px; height:16px; flex-shrink:0}
+#btn-adv{border:0; background:none; color:var(--link); font-size:13.5px; cursor:pointer; padding:8px 2px; white-space:nowrap}
+#btn-adv:hover{text-decoration:underline}
+#adv-panel{display:none; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px;
+  padding:12px 20px; border-top:1px dashed var(--border); flex-shrink:0}
+#adv-panel.open{display:grid}
+.fld label{display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:4px}
+.fld input,.fld select{width:100%; padding:6px 9px; border:1px solid var(--border); border-radius:4px; font-size:14px}
+.fld-act{display:flex; gap:8px; align-items:flex-end}
+
+#stage{flex:1; overflow-y:auto; min-width:0; display:flex; flex-direction:column}
+.st-head{display:flex; justify-content:space-between; align-items:flex-end; padding:12px 20px 8px; gap:10px}
+.st-head h2{font-size:18px; font-weight:600; color:var(--ink)}
+body.dark .st-head h2{color:#dbe6ee}
+.st-head .refcount{color:var(--muted); font-size:13px; margin-top:2px}
+/* Cinta de herramientas: grupos con rótulo como en la cinta de Office/EndNote */
+.iconbar{display:flex; align-items:stretch; border:1px solid var(--border); border-radius:8px; background:var(--bg); overflow:hidden}
+.iconbar button{border:0; background:none; color:#1f4e79; width:46px; height:36px; border-radius:6px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center}
+.iconbar button:hover{background:var(--hov2)}
+.iconbar svg{width:21px; height:21px; stroke-width:1.8}
+.rib-g{display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 12px 3px; min-width:64px; justify-content:flex-start}
+.rib-g + .rib-g{border-left:1px solid var(--border)}
+body.dark .rib-g + .rib-g{border-color:#26334d}
+.rib-cap{font-size:11px; color:#6b7280; white-space:nowrap; line-height:1}
+.rib-sel{font-size:12.5px; padding:4px 5px; border:1px solid var(--border); border-radius:5px; background:var(--bg);
+  color:var(--text); max-width:120px; height:auto; margin:auto 0 0}
+body.dark .rib-cap{color:#9ca3af}
+body.dark .iconbar{background:var(--panel)}
+body.dark .iconbar button{color:#7fb4d6}
+.iconbar .danger-ib{color:#dc2626; font-size:13.5px; font-weight:600}
+.rib-sep{width:0}
+.bulkbar{display:none; padding:10px 20px; gap:10px; align-items:center; flex-wrap:wrap;
+  background:var(--row-sel); border-bottom:1px solid var(--border)}
+.bulkbar.open{display:flex}
+.bulkbar select{padding:6px 9px; border:1px solid var(--border); border-radius:7px; font-size:14px; background:var(--bg)}
+.btn{border:1px solid #adb5bd; background:#fff; color:#1f2937; padding:8px 16px; border-radius:8px;
+  font-size:14.5px; cursor:pointer}
+.btn:hover{background:#f1f5f9}
+.btn.primary{background:var(--teal); border-color:var(--teal); color:#fff}
+.btn.primary:hover{background:var(--teal2)}
+.btn.sm{padding:6px 12px; font-size:14px}
+.btn.danger{color:#dc2626}
+.link-danger{border:0; background:none; color:#dc2626; cursor:pointer; font-size:14px}
+.link-danger:hover{text-decoration:underline}
+
+table.rt{width:100%; border-collapse:collapse}
+.rt th{text-align:left; padding:6px 12px; font-size:13px; color:#374151; border-bottom:1px solid var(--border);
+  border-top:1px solid var(--border); background:#f7f8f9; white-space:nowrap; position:sticky; top:0; z-index:5}
+body.dark .rt th{background:#16233c}
+.rt th.c-clp,.rt td.c-clp{width:40px; text-align:center}
+.rt th.c-ano{width:64px}
+.rt td{padding:5px 12px; font-size:14.5px; border-bottom:1px solid #e5e7eb; cursor:pointer; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis}
+body.dark .rt td{border-bottom-color:#1d2942}
+.rt td.c-ano{text-align:left}
+.rt tbody tr:hover td{background:var(--hover)}
+.rt tbody tr.sel td{background:var(--row-sel)}
+.rt td .t-full{font-weight:400; font-style:italic; color:var(--muted)}
+.rt .noresults{padding:48px 40px; color:var(--muted); text-align:center; line-height:1.65}
+.noresults .er-logo{font-size:46px; margin-bottom:10px}
+.noresults b{display:block; color:var(--text); font-size:17px; margin-bottom:8px}
+.sort-btn{border:0; background:none; font:inherit; color:inherit; cursor:pointer; padding:0; text-align:left; display:inline-flex; gap:4px; align-items:baseline}
+.dup-group{margin:14px 20px; border:1px solid var(--border); border-radius:10px; background:var(--panel)}
+.dup-group h4{font-size:13.5px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); padding:10px 14px 8px; border-bottom:1px solid var(--border); font-weight:600}
+.dup-ref{display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid #eee}
+body.dark .dup-ref{border-bottom-color:#1d2942}
+.dup-ref:last-child{border-bottom:0}
+.dr-info{flex:1; min-width:0}
+.dr-title{font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dr-meta{font-size:13px; color:var(--muted); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.d-hint{font-size:13px; color:var(--muted); margin-top:10px}
+.c-acc{width:170px}
+.c-star{width:86px; white-space:nowrap; text-align:left}
+.rt mark{background:#fde68a; color:#1e293b; border-radius:3px; padding:0 1px}
+@media print{
+  body{overflow:visible; background:#fff; color:#000; height:auto}
+  #menubar, #sidebar, #tabs, #qrow, #adv-panel, #detail, .bulkbar, .iconbar, #sb-search, #statusbar{display:none !important}
+  #shell{height:auto; display:block}
+  #shell-row{display:block}
+  #mcol, #stage{overflow:visible; display:block; height:auto}
+  .rt th{position:static}
+  .rt td, .rt th{border:1px solid #999}
+  .noresults{padding:20px}
+}
+.rt td.c-star{cursor:pointer; font-size:15px; letter-spacing:1px; user-select:none}
+#statusbar{height:24px; flex-shrink:0; background:var(--bar-bg); border-top:1px solid var(--bar-line);
+  display:flex; align-items:center; gap:18px; padding:0 14px; font-size:12.5px; color:#5b6572; user-select:none}
+#statusbar .sep{flex:1}
+#statusbar b{color:var(--ink)}
+.rt td.c-star .st-on{color:#eab308}
+.rt td.c-star .st-off{color:#c7ccd4}
+.rt tbody tr.unread .t-title{font-weight:700}
+.rt tbody tr.m-sel td{background:var(--row-sel)}
+.stars-detail button{border:0; background:none; cursor:pointer; font-size:17px; color:#eab308; padding:0 2px}
+.bulkbar b{font-weight:700}
+.bulkbar .danger{color:#dc2626; border-color:#e4b2b2}
+
+/* autos online */
+.ol-actions{padding:4px 20px 10px; display:flex; gap:10px}
+.ol-note{padding:0 20px 8px; color:var(--muted); font-size:13.5px}
+.spin{display:inline-block; width:15px; height:15px; border:2px solid var(--teal); border-top-color:transparent;
+  border-radius:50%; animation:g 0.8s linear infinite; vertical-align:-2px}
+@keyframes g{to{transform:rotate(360deg)}}
+
+/* ======== PANEL DERECHO ======== */
+#detail{width:var(--det-w); flex-shrink:0; border-left:1px solid var(--border); display:none;
+  flex-direction:column; background:var(--bg); overflow:hidden}
+#detail.open{display:flex}
+.d-head{display:flex; align-items:center; gap:8px; padding:10px 14px; flex-shrink:0; flex-wrap:nowrap}
+.d-cite{font-size:14px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px}
+.d-tabs{display:flex; gap:2px}
+.d-tab{border:0; background:none; padding:8px 13px; font-size:15px; color:var(--muted); cursor:pointer;
+  border-bottom:2px solid transparent}
+.d-tab.active{color:var(--link); font-weight:600; border-bottom-color:var(--teal)}
+.d-ico{margin-left:auto; display:flex; gap:2px}
+.d-ico button{border:0; background:none; color:var(--text); width:34px; height:34px; border-radius:7px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px}
+.d-ico button:hover{background:var(--hover)}
+.d-ico svg{width:18px; height:18px}
+.fmt-bar{display:flex; gap:4px; align-items:center}
+.fmt-bar button{width:30px; height:30px; border:1px solid var(--border); background:var(--bg); border-radius:6px;
+  cursor:pointer; font-weight:700; font-size:14px; font-family:inherit; color:var(--text)}
+.fmt-bar button:hover{background:var(--hover); border-color:var(--teal); color:var(--teal)}
+.fmt-bar gap{width:6px}
+.d-tool{display:flex; gap:8px; padding:8px 14px 10px; border-bottom:1px solid var(--border); flex-shrink:0; align-items:center; flex-wrap:wrap}
+.d-tool .btn{padding:6px 12px; font-size:13.5px}
+#d-scroll{flex:1; overflow-y:auto; padding:16px 18px 30px}
+.formrow{display:grid; grid-template-columns:150px 1fr; gap:10px 12px; align-items:start; margin-bottom:10px}
+.formrow > label{text-align:right; font-size:14.5px; color:#1f2937; padding-top:7px}
+.formrow > div{min-width:0}
+.formrow input, .formrow select, .formrow textarea{width:100%; padding:7px 10px; border:1px solid var(--border);
+  border-radius:4px; font-size:14.5px; background:var(--bg)}
+.formrow textarea{resize:vertical; min-height:60px}
+.tagchips{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.tagchips .chip{border:1px solid var(--border); border-radius:12px; padding:2px 9px; font-size:13.5px; display:inline-flex; gap:5px; align-items:center; background:var(--bg)}
+.chip-x{border:0; background:none; cursor:pointer; color:var(--muted); font-size:11px; padding:0}
+.chip-x:hover{color:#b91c1c}
+.terms-sec{margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:12px; font-size:14.5px}
+.tagchips .chip button{border:0; background:none; cursor:pointer; color:var(--muted); font-size:12.5px; padding:0}
+.tagchips .chip button:hover{color:#dc2626}
+.tagchips input{width:90px; border:1px dashed var(--border); border-radius:12px; padding:2px 9px; font-size:13.5px}
+.manage-tags{padding:5px 12px; font-size:14px; border:1px solid var(--border); background:var(--bg); border-radius:5px; cursor:pointer}
+.manage-tags:hover{background:var(--hover)}
+.badge{display:inline-block; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted);
+  border:1px solid var(--border); padding:3px 9px; border-radius:5px; background:var(--bg)}
+.d-title{font-family:inherit; font-size:21px; line-height:1.35; font-weight:700; margin:12px 0 16px}
+.kv{display:grid; grid-template-columns:110px 1fr; gap:7px 12px; font-size:14.5px; margin-bottom:16px}
+.kv dt{color:var(--muted); font-size:12px; letter-spacing:.7px; text-transform:uppercase; padding-top:2px}
+.kv dd{word-break:break-word}
+.d-label{font-size:12px; letter-spacing:.7px; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.preview{border:1px solid var(--border); border-radius:8px; padding:12px; background:#f9fafb; margin-bottom:14px}
+body.dark .preview{background:#16233c}
+.preview select{margin-bottom:8px; padding:4px 8px; font-size:13.5px; border:1px solid var(--border); border-radius:6px; background:var(--bg)}
+.preview p{font-size:14.5px; line-height:1.55}
+.p-actions{display:flex; flex-direction:column; gap:8px}
+.p-actions .btn{text-align:center}
+.pdw{display:flex; flex-direction:column; gap:8px; margin-top:10px}
+.pdw .btn{display:flex; gap:8px; align-items:center; justify-content:flex-start}
+.pdw .btn.alt{justify-content:center}
+.pdfframe{width:100%; height:calc(100vh - 240px); border:1px solid var(--border); border-radius:8px; margin-top:10px; background:#fff}
+.pdf-drop{display:flex; flex-direction:column; align-items:center; gap:10px; padding:44px 14px;
+  border:2px dashed var(--border); border-radius:10px; color:var(--muted); text-align:center}
+
+/* ======== MODALES / TOAST ======== */
+.modal-backdrop{position:fixed; inset:0; background:rgba(9,20,30,.5); display:none; z-index:200;
+  align-items:flex-start; justify-content:center; overflow-y:auto; padding:40px 20px}
+.modal-backdrop.open{display:flex}
+#modal{background:#fff; color:#1f2937; border-radius:10px; width:700px; max-width:100%; padding:24px;
+  box-shadow:0 24px 70px rgba(0,0,0,.4); margin-bottom:40px}
+#modal h3{font-family:inherit; font-size:20px; font-weight:700; margin-bottom:16px}
+.m-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.m-grid .full{grid-column:1/-1}
+.m-grid label{display:block; font-size:12px; text-transform:uppercase; letter-spacing:.7px; color:#6b7280; margin-bottom:4px}
+.m-grid input,.m-grid select,.m-grid textarea{width:100%; padding:8px 10px; border:1px solid #d1d5db;
+  border-radius:6px; font-size:15px; color:#1f2937; background:#fff}
+.m-grid textarea{resize:vertical; min-height:70px}
+.modal-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:18px; padding-top:14px; border-top:1px solid #e5e7eb}
+#prompt-backdrop{position:fixed; inset:0; background:rgba(9,20,30,.5); display:none; z-index:210; align-items:center; justify-content:center}
+#prompt-backdrop.open{display:flex}
+#prompt-box{background:#fff; color:#1f2937; border-radius:10px; width:430px; max-width:92vw; padding:24px; box-shadow:0 24px 70px rgba(0,0,0,.4)}
+#prompt-box h3{font-size:15px; font-weight:600; margin-bottom:14px}
+#prompt-input{width:100%; padding:9px 11px; border:1px solid #d1d5db; border-radius:6px; font-size:16px}
+#toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(90px);
+  background:var(--navy); color:#fff; padding:11px 20px; border-radius:8px; font-size:15px;
+  transition:transform .25s; z-index:300; box-shadow:0 10px 30px rgba(0,0,0,.35); max-width:80vw}
+#toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="menubar">
+    <span class="mb-brand"><span class="logo-bc">BC</span>BioCiencia</span>
+    <span class="mb-title">Gestor de referencias</span>
+    <!-- Menús construidos dinámicamente por app.js (renderMenus) al estilo EndNote -->
+  </div>
+
+  <div id="shell-row">
+    <aside id="sidebar">
+      <div class="sb-user">
+        <div class="sb-logo"><span class="logo-bc lg">BC</span></div>
+        <div><b>BioCiencia</b><small>Gestor de referencias</small></div>
+      </div>
+      <div class="sb-sync"><span class="dot"></span><span id="sb-status">Biblioteca local — sin cuenta en línea</span></div>
+
+      <nav id="sb-nav">
+        <button class="sb-i" data-scope="todas"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg> <span class="lbl">Todas las referencias</span><span class="cnt" id="cnt-todas"></span></button>
+        <button class="sb-i" data-scope="recientes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span class="lbl">Añadidas recientemente</span><span class="cnt" id="cnt-rec"></span></button>
+        <button class="sb-i" data-scope="sinarchivar"><svg viewBox="0 0 24 24"><path d="M3 7l2-3h14l2 3"/><path d="M3 7v13h18V7"/><path d="M3 7h8l2 3h8"/></svg> <span class="lbl">Sin archivar</span><span class="cnt" id="cnt-sin"></span></button>
+        <button class="sb-i" data-scope="papelera"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg> <span class="lbl">Papelera</span><span class="cnt" id="cnt-pap"></span></button>
+      </nav>
+
+      <div class="sb-sec" id="sec-col" role="button" tabindex="0"><span class="chev">▾</span><span>Colecciones</span><button class="mb-plus" data-plus="col" title="Nueva colección">＋</button></div>
+      <div class="sb-list" id="col-list"></div>
+
+      <div class="sb-sec" id="sec-tags" role="button" tabindex="0"><span class="chev">▾</span><span>Etiquetas</span></div>
+      <div class="sb-list" id="tag-list"></div>
+
+      <div class="sb-sec" id="sec-online" role="button" tabindex="0"><span class="chev">▾</span><span>Búsqueda en línea</span></div>
+      <div class="sb-list" id="online-list">
+        <button class="sb-i" data-online="openalex" title="OpenAlex (índice abierto)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg> <span class="lbl">OpenAlex</span></button>
+        <button class="sb-i" data-online="crossref" title="Crossref (DOI)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg> <span class="lbl">Crossref</span></button>
+        <button class="sb-i" data-online="pubmed" title="PubMed (NLM)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg> <span class="lbl">PubMed (NLM)</span></button>
+      </div>
+
+      <div id="sb-search">
+        <input id="sb-group-filter" placeholder="Buscar colección…">
+        <svg class="qi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+      </div>
+    </aside>
+
+    <section id="mcol">
+      <div id="tabs"></div>
+      <div id="qrow">
+        <div class="qbox">
+          <select id="q-campo">
+            <option value="">Cualquier campo</option>
+            <option value="titulo">Título</option>
+            <option value="autores">Autor</option>
+            <option value="revista">Revista</option>
+            <option value="etiquetas">Etiquetas</option>
+          </select>
+          <input id="search" placeholder="">
+          <svg class="qi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        </div>
+        <button id="btn-adv">Búsqueda avanzada</button>
+      </div>
+      <div id="adv-panel">
+        <div class="fld"><label>Título</label><input id="adv-titulo"></div>
+        <div class="fld"><label>Autor</label><input id="adv-autor"></div>
+        <div class="fld"><label>Revista / Fuente</label><input id="adv-revista"></div>
+        <div class="fld"><label>DOI</label><input id="adv-doi"></div>
+        <div class="fld"><label>Etiqueta</label><input id="adv-tag"></div>
+        <div class="fld"><label>Año desde</label><input id="adv-de" type="number"></div>
+        <div class="fld"><label>Año hasta</label><input id="adv-hasta" type="number"></div>
+        <div class="fld"><label>Tipo</label>
+          <select id="adv-tipo"><option value="">Cualquiera</option>
+            <option>artículo</option><option>libro</option><option>capítulo</option>
+            <option>conferencia</option><option>tesis</option><option>informe</option>
+            <option>página web</option><option>prensa</option><option>datos</option>
+            <option>software</option><option>otro</option></select>
+        </div>
+        <div class="fld fld-act">
+          <button class="btn sm" id="adv-ok">Aplicar</button>
+          <button class="btn sm" id="adv-clear">Limpiar</button>
+        </div>
+      </div>
+
+      <div id="stage"></div>
+    </section>
+
+    <aside id="detail"></aside>
+  </div>
+
+  <div id="statusbar">
+    <span id="sb-left">BioCiencia lista</span>
+    <span class="sep"></span>
+    <span id="sb-est"></span>
+    <span>Biblioteca local · sin nube</span>
+  </div>
+</div>
+
+<!-- Modal: nueva referencia -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div id="modal">
+    <h3>Nueva referencia</h3>
+    <div class="m-grid">
+      <div><label>Reference Type / Tipo</label>
+        <select id="f-tipo">
+          <option>artículo</option><option>libro</option><option>capítulo</option>
+          <option>conferencia</option><option>tesis</option><option>informe</option>
+          <option>página web</option><option>prensa</option><option>datos</option>
+          <option>software</option><option>otro</option>
+        </select>
+      </div>
+      <div><label>Año</label><input id="f-ano"></div>
+      <div class="full"><label>Título *</label><input id="f-titulo"></div>
+      <div class="full"><label>Autor(es) — separados por «;»</label>
+        <input id="f-autores" list="dl-autores" placeholder="García, M.; López, A."></div>
+      <div><label>Revista / Journal</label><input id="f-revista" list="dl-revistas"></div>
+      <div><label>Editorial</label><input id="f-editorial"></div>
+      <div><label>Volumen</label><input id="f-volumen"></div>
+      <div><label>Issue / Número</label><input id="f-numero"></div>
+      <div><label>Páginas</label><input id="f-paginas" placeholder="123-145"></div>
+      <div><label>Lugar</label><input id="f-direccion"></div>
+      <div><label>DOI</label><input id="f-doi"></div>
+      <div><label>URL</label><input id="f-url"></div>
+      <div class="full"><label>Etiquetas — separadas por «;»</label><input id="f-palabras" list="dl-etiquetas"></div>
+      <div class="full"><label>Resumen</label><textarea id="f-resumen"></textarea></div>
+      <div class="full"><label>Notas</label><textarea id="f-notas"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancel">Cancelar</button>
+      <button class="btn primary" id="btn-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Entrada de texto -->
+<div id="prompt-backdrop">
+  <div id="prompt-box">
+    <h3 id="prompt-title">Valor</h3>
+    <input id="prompt-input" type="text">
+    <div class="modal-actions">
+      <button class="btn" id="prompt-cancel">Cancelar</button>
+      <button class="btn primary" id="prompt-ok">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="modal-terms" class="modal-backdrop">
+  <div class="modal" style="width:620px">
+    <h3>Gestionar listas de términos</h3>
+    <div id="terms-body" style="max-height:60vh; overflow:auto"></div>
+    <div class="modal-actions"><button class="btn sm" id="terms-close">Cerrar</button></div>
+  </div>
+</div>
+<datalist id="dl-autores"></datalist>
+<datalist id="dl-revistas"></datalist>
+<datalist id="dl-etiquetas"></datalist>
+<script src="app.js"></script>
+</body>
+</html>

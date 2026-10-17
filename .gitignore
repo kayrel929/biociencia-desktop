@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Salidas de build
+dist/
+out/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+*.log
+.vs/
+.vscode/
+*.swp
+
+# ExOneDrive lock temp files
+~$*
